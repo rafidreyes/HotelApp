@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="styleTable.css">
+    <title>Vista de Datos - Hotel</title>
+</head>
+<body>
+<header>
+    <h1 id="page-title">Datos</h1>
+    <button id="btn-back" class="back-button">
+        <ion-icon name="arrow-back-outline"></ion-icon> Volver al Menú
+    </button>
+
+</header>
+
+<main>
+    <div class="table-container">
+        <div id="loading-indicator">Cargando datos...</div>
+        <table id="data-table">
+            <thead id="table-header">
+            <!-- Las columnas se generarán dinámicamente -->
+            </thead>
+            <tbody id="table-body">
+            <!-- Los datos se cargarán dinámicamente -->
+            </tbody>
+        </table>
+    </div>
+</main>
+
+<script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+<script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log("DOMContentLoaded en table_view.html"); //Agregar este log
+        // Configurar el botón de volver
+        document.getElementById('btn-back').addEventListener('click', function() {
+            app.goBackToMenu();
+        });
+
+        // Inicializar la página - esto disparará la carga de datos desde Java
+        app.initPage();
+        console.log("Después de llamar a app.initPage() en table_view.html"); //Agregar este log
+    });
+
+    // Función que será llamada desde Java para mostrar los datos
+    function displayData(pageTitle, columns, data) {
+        console.log("displayData llamada con: ", pageTitle, columns, data);
+        // Actualizar el título de la página
+        document.getElementById('page-title').textContent = pageTitle;
+
+        // Ocultar indicador de carga
+        document.getElementById('loading-indicator').style.display = 'none';
+
+        // Generar encabezados de tabla
+        const tableHeader = document.getElementById('table-header');
+        let headerRow = document.createElement('tr');
+
+        columns.forEach(column => {
+            let th = document.createElement('th');
+            th.textContent = column;
+            headerRow.appendChild(th);
+        });
+
+        tableHeader.innerHTML = '';
+        tableHeader.appendChild(headerRow);
+
+        // Generar filas de datos
+        const tableBody = document.getElementById('table-body');
+        tableBody.innerHTML = '';
+
+        data.forEach(row => {
+            let tr = document.createElement('tr');
+
+            columns.forEach(column => {
+                let td = document.createElement('td');
+                td.textContent = row[column] || '';
+                tr.appendChild(td);
+            });
+
+            tableBody.appendChild(tr);
+        });
+    }
+</script>
+</body>
+</html>

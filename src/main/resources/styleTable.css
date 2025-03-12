@@ -1,0 +1,149 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@500&display=swap');
+
+/* General Reset and Font */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Poppins', sans-serif;
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    background-image: url('hotelApp.jpeg'); /* Asume que tienes esta imagen */
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: cover;
+    color: #fff;
+}
+
+/* Header Section */
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 2rem; /* Increased padding */
+    background-color: rgba(255, 255, 255, 0.15); /* Glassmorphism background */
+    backdrop-filter: blur(10px); /* Glassmorphism blur */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+h1 {
+    font-size: 2rem; /* Slightly larger */
+    font-weight: 500;
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.4); /* Text shadow for better readability */
+}
+
+.back-button {
+    display: flex;
+    align-items: center;
+    background: linear-gradient(to right, #ffffff, #f4f4f4); /* Gradient background */
+    color: #333;
+    border: 2px solid transparent;
+    border-radius: 30px;
+    padding: 0.7rem 1.4rem; /* Adjusted padding */
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+}
+
+.back-button:hover {
+    background: linear-gradient(to right, #e0f7fa, #b2ebf2);
+    color: #00796b;
+    transform: scale(1.05);
+    box-shadow: 0 6px 20px rgba(0, 121, 107, 0.3);
+}
+
+.back-button ion-icon {
+    margin-right: 0.5rem;
+    font-size: 1.3rem;
+    color: inherit;
+    transition: transform 0.3s ease;
+}
+
+.back-button:hover ion-icon {
+    transform: scale(1.2);
+}
+
+/* Main Content Section */
+main {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center; /* Center the table container vertically */
+    padding: 2rem;
+}
+
+.table-container {
+    width: 100%;
+    max-width: 1200px;
+    background-color: rgba(255, 255, 255, 0.15); /* Glassmorphism background */
+    border-radius: 20px;
+    padding: 2rem; /* Increased padding */
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+    backdrop-filter: blur(15px); /* Glassmorphism blur */
+}
+
+#loading-indicator {
+    text-align: center;
+    padding: 20px;
+    font-size: 1.2rem; /* Slightly larger */
+    color: #eee; /* Lighter color for loading indicator */
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5); /* Text shadow for better visibility */
+}
+
+/* Table Styling */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+}
+
+th, td {
+    padding: 1rem 1.2rem; /* Adjusted padding */
+    text-align: left;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+th {
+    background-color: rgba(255, 255, 255, 0.1); /* Lighter header background */
+    font-weight: 500;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3); /* Text shadow for header */
+}
+
+tr:hover {
+    background-color: rgba(255, 255, 255, 0.08); /* Slightly stronger hover effect */
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    header {
+        padding: 1.5rem;
+    }
+
+    h1 {
+        font-size: 1.8rem;
+    }
+
+    .back-button {
+        padding: 0.6rem 1rem;
+        font-size: 0.9rem;
+    }
+
+    th, td {
+        padding: 0.8rem 1rem;
+        font-size: 0.9rem;
+    }
+
+    main {
+        padding: 1.5rem;
+    }
+
+    .table-container {
+        padding: 1.5rem;
+    }
+}

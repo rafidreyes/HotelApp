@@ -5,6 +5,35 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="styleTable.css">
     <title>Vista de Datos - Hotel</title>
+    <style>
+        /* Estilos para el campo de búsqueda */
+        .search-container {
+            margin: 15px 0;
+            display: flex;
+            align-items: center;
+        }
+        .search-container label {
+            margin-right: 10px;
+            font-weight: bold;
+        }
+        .search-container input {
+            padding: 8px 12px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 300px;
+            font-size: 14px;
+        }
+        .search-container input:focus {
+            outline: none;
+            border-color: #4a90e2;
+            box-shadow: 0 0 5px rgba(74, 144, 226, 0.5);
+        }
+        .search-info {
+            margin-left: 10px;
+            font-size: 14px;
+            color: #666;
+        }
+    </style>
 </head>
 <body>
 <header>
@@ -16,6 +45,13 @@
 
 <main>
     <div class="table-container">
+        <!-- Añadimos el campo de búsqueda -->
+        <div class="search-container">
+            <label for="search-input"><ion-icon name="search-outline"></ion-icon> Buscar:</label>
+            <input type="text" id="search-input" placeholder="Escriba para filtrar los resultados...">
+            <span id="search-info" class="search-info"></span>
+        </div>
+
         <div id="loading-indicator">Cargando datos...</div>
         <div id="error-message" style="color: red; display: none;"></div>
         <table id="data-table">
@@ -33,6 +69,10 @@
 <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
 
 <script>
+    // Variables para almacenar los datos originales
+    let allData = [];
+    let tableColumns = [];
+
     // Inicializar la página
     function tryInitPage() {
         console.log("Intentando inicializar la página...");
@@ -89,6 +129,114 @@
         }
     }
 
+    // Configurar la funcionalidad de búsqueda
+    function setupSearch() {
+        const searchInput = document.getElementById('search-input');
+        const searchInfo = document.getElementById('search-info');
+
+        if (!searchInput) {
+            console.error("No se encontró el campo de búsqueda");
+            return;
+        }
+
+        searchInput.addEventListener('input', function() {
+            filterTable(this.value.toLowerCase());
+        });
+
+        // Añadir acceso rápido con Ctrl+F
+        document.addEventListener('keydown', function(e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+                e.preventDefault();
+                searchInput.focus();
+            }
+        });
+    }
+
+    // Filtrar la tabla según el texto de búsqueda
+    function filterTable(searchText) {
+        const tableBody = document.getElementById('table-body');
+        const searchInfo = document.getElementById('search-info');
+        let matchCount = 0;
+        let totalRows = 0;
+
+        if (!allData || !tableBody) return;
+
+        // Limpiar la tabla
+        tableBody.innerHTML = '';
+
+        // Filtrar y mostrar solo las filas que coinciden
+        allData.forEach((rowData, index) => {
+            totalRows++;
+            let matchFound = false;
+
+            // Buscar en todas las columnas
+            for (const column of tableColumns) {
+                const lowerCaseColumn = column.toLowerCase();
+                if (lowerCaseColumn in rowData) {
+                    const cellValue = String(rowData[lowerCaseColumn] || '').toLowerCase();
+                    if (cellValue.includes(searchText)) {
+                        matchFound = true;
+                        break;
+                    }
+                }
+            }
+
+            // Si hay coincidencia o no hay texto de búsqueda, mostrar la fila
+            if (matchFound || searchText === '') {
+                matchCount++;
+                try {
+                    const row = document.createElement('tr');
+
+                    tableColumns.forEach(column => {
+                        const cell = document.createElement('td');
+                        const lowerCaseColumn = column.toLowerCase();
+
+                        if (lowerCaseColumn in rowData) {
+                            let cellValue = rowData[lowerCaseColumn];
+
+                            // Formatear valores especiales si es necesario
+                            if ((lowerCaseColumn.includes('precio') || lowerCaseColumn.includes('costo')) &&
+                                cellValue && !isNaN(parseFloat(cellValue))) {
+                                try {
+                                    const numValue = parseFloat(cellValue);
+                                    cellValue = numValue.toLocaleString('es-MX', {
+                                        style: 'currency',
+                                        currency: 'MXN'
+                                    });
+                                } catch (e) {
+                                    console.error("Error al formatear valor monetario:", e);
+                                }
+                            }
+
+                            // Resaltar el texto de búsqueda si hay coincidencia
+                            if (searchText && String(cellValue).toLowerCase().includes(searchText)) {
+                                const regex = new RegExp('(' + searchText.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&') + ')', 'gi');
+                                cell.innerHTML = String(cellValue).replace(regex, '<span style="background-color: yellow; font-weight: bold;">$1</span>');
+                            } else {
+                                cell.textContent = cellValue || '';
+                            }
+                        } else {
+                            cell.textContent = '';
+                        }
+
+                        row.appendChild(cell);
+                    });
+
+                    tableBody.appendChild(row);
+                } catch (rowError) {
+                    console.error(`Error al procesar fila ${index}:`, rowError);
+                }
+            }
+        });
+
+        // Actualizar información de búsqueda
+        if (searchText) {
+            searchInfo.textContent = `Mostrando ${matchCount} de ${totalRows} registros`;
+        } else {
+            searchInfo.textContent = '';
+        }
+    }
+
     // Función llamada desde Java para mostrar los datos
     function displayData(pageTitle, columns, data) {
         console.log("displayData LLAMADA con título:", pageTitle);
@@ -107,6 +255,10 @@
 
             console.log("  columns:", columns.length, "columnas");
             console.log("  data:", data.length, "filas");
+
+            // Guardar los datos originales para búsqueda
+            allData = data;
+            tableColumns = columns;
 
             // Imprimir muestra de datos para depuración
             if (data.length > 0) {
@@ -135,10 +287,6 @@
 
             tableHeader.appendChild(headerRow);
 
-            // Generar filas de datos
-            const tableBody = document.getElementById('table-body');
-            tableBody.innerHTML = ''; // Limpiar contenido previo
-
             // Verificar si hay datos
             if (data.length === 0) {
                 document.getElementById('error-message').textContent = 'No se encontraron datos';
@@ -146,48 +294,11 @@
                 return;
             }
 
-            // Crear una fila para cada elemento de datos
-            // Crear una fila para cada elemento de datos
-data.forEach((rowData, index) => {
-    try {
-        const row = document.createElement('tr');
+            // Mostrar todos los datos inicialmente (sin filtro)
+            filterTable('');
 
-        // Agregar una celda para cada columna
-        columns.forEach(column => {
-            const cell = document.createElement('td');
-            const lowerCaseColumn = column.toLowerCase();
-
-            // Verificar si existe la propiedad (probar tanto con mayúsculas como minúsculas)
-            if (lowerCaseColumn in rowData) {
-                let cellValue = rowData[lowerCaseColumn];
-
-                // Formatear valores especiales si es necesario (por ejemplo precios)
-                if ((lowerCaseColumn.includes('precio') ||
-                     lowerCaseColumn.includes('costo')) &&
-                    cellValue && !isNaN(parseFloat(cellValue))) {
-                    try {
-                        const numValue = parseFloat(cellValue);
-                        cellValue = numValue.toLocaleString('es-MX', {
-                            style: 'currency',
-                            currency: 'MXN'
-                        });
-                    } catch (e) {
-                        console.error("Error al formatear valor monetario:", e);
-                    }
-                }
-                cell.textContent = cellValue || '';
-            } else {
-                cell.textContent = '';
-                console.warn(`Columna '${column}' (minúsculas: '${lowerCaseColumn}') no encontrada en fila ${index}`);
-            }
-            row.appendChild(cell);
-        });
-        tableBody.appendChild(row);
-    } catch (rowError) {
-        console.error(`Error al procesar fila ${index}:`, rowError);
-        // Continuar con la siguiente fila
-    }
-});
+            // Configurar búsqueda
+            setupSearch();
 
             // Mostrar la tabla
             document.getElementById('data-table').style.display = 'table';

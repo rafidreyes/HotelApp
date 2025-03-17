@@ -317,6 +317,18 @@ public class Main extends Application {
                 }
                 System.out.println("Filas procesadas: " + rowCount);
 
+                for (int i = 0; i < jsonData.size(); i++) {
+                    System.out.println("Verificando fila " + i);
+                    JSONObject row = (JSONObject) jsonData.get(i);
+                    for (Object key : row.keySet()) {
+                        Object value = row.get(key);
+                        if (value != null && value.toString().contains("\u0000")) {
+                            System.out.println("ADVERTENCIA: Valor con caracteres nulos detectado en " + key);
+                            row.put(key, value.toString().replace("\u0000", ""));
+                        }
+                    }
+                }
+
                 // Crear JSONArray para columnas
                 final JSONArray jsonColumns = new JSONArray();
                 jsonColumns.addAll(columns);
@@ -324,6 +336,12 @@ public class Main extends Application {
                 // Serialización segura para verificar
                 final String columnsJsonString = jsonColumns.toJSONString();
                 final String dataJsonString = jsonData.toJSONString();
+
+                // En Main.java, puedes agregar una validación del tamaño
+                System.out.println("Tamaño aproximado de los datos en bytes: " + dataJsonString.getBytes().length);
+                if (dataJsonString.getBytes().length > 1000000) {
+                    System.out.println("ADVERTENCIA: Los datos son muy grandes, esto podría causar problemas");
+                }
 
                 System.out.println("Columns JSON: " + columnsJsonString);
                 System.out.println("Data JSON (primeras filas): " +
@@ -350,6 +368,10 @@ public class Main extends Application {
                                 "  document.getElementById('error-message').style.display = 'block';\n" +
                                 "  document.getElementById('loading-indicator').style.display = 'none';\n" +
                                 "}";
+
+                // En la clase Main.java, en el método loadTableData, añade más logs para depurar
+                System.out.println("Data JSON completo: " + dataJsonString);
+                System.out.println("Longitud de dataJsonString: " + dataJsonString.length());
 
                 System.out.println("Enviando datos a JavaScript: " + jsonData.size() + " filas");
 

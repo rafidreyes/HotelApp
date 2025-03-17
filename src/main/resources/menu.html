@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="styleMenu.css">
+    <title>Menú Principal - Hotel</title>
+</head>
+<body>
+<section>
+    <h1>Menú Principal</h1>
+    <div class="menu-container">
+        <button class="menu-button" id="btn-habitaciones" disabled>
+            <ion-icon name="bed-outline"></ion-icon> Habitaciones
+        </button>
+        <button class="menu-button" id="btn-huespedes" disabled>
+            <ion-icon name="people-outline"></ion-icon> Huéspedes
+        </button>
+        <button class="menu-button" id="btn-pagos" disabled>
+            <ion-icon name="card-outline"></ion-icon> Pagos
+        </button>
+        <button class="menu-button" id="btn-reserva-servicios" disabled>
+            <ion-icon name="clipboard-outline"></ion-icon> Reserva de Servicios
+        </button>
+        <button class="menu-button" id="btn-reservas" disabled>
+            <ion-icon name="calendar-outline"></ion-icon> Reservas
+        </button>
+        <button class="menu-button" id="btn-servicios" disabled>
+            <ion-icon name="construct-outline"></ion-icon> Servicios
+        </button>
+    </div>
+</section>
+
+<script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+<script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Configurar los eventos para cada botón
+        document.getElementById('btn-habitaciones').addEventListener('click', function() {
+            console.log("Botón Habitaciones clickeado - antes de app.loadPage");
+            app.loadPage('habitaciones');
+            console.log("Botón Habitaciones clickeado - después de app.loadPage");
+        });
+
+        document.getElementById('btn-huespedes').addEventListener('click', function() {
+            console.log("Botón Huéspedes clickeado - antes de app.loadPage");
+            app.loadPage('huespedes');
+            console.log("Botón Huéspedes clickeado - después de app.loadPage");
+        });
+
+        document.getElementById('btn-pagos').addEventListener('click', function() {
+            console.log("Botón Pagos clickeado - antes de app.loadPage");
+            app.loadPage('pagos');
+            console.log("Botón Pagos clickeado - después de app.loadPage");
+        });
+
+        document.getElementById('btn-reserva-servicios').addEventListener('click', function() {
+            console.log("Botón Reserva de Servicios clickeado - antes de app.loadPage");
+            app.loadPage('reserva-servicios');
+            console.log("Botón Reserva de Servicios clickeado - después de app.loadPage");
+        });
+
+        document.getElementById('btn-reservas').addEventListener('click', function() {
+            console.log("Botón Reservas clickeado - antes de app.loadPage");
+            app.loadPage('reservas');
+            console.log("Botón Reservas clickeado - después de app.loadPage");
+        });
+
+        document.getElementById('btn-servicios').addEventListener('click', function() {
+            console.log("Botón Servicios clickeado - antes de app.loadPage");
+            app.loadPage('servicios');
+            console.log("Botón Servicios clickeado - después de app.loadPage");
+        });
+    });
+</script>
+</body>
+</html>

@@ -12,12 +12,12 @@
     <button id="btn-back" class="back-button">
         <ion-icon name="arrow-back-outline"></ion-icon> Volver al Menú
     </button>
-
 </header>
 
 <main>
     <div class="table-container">
         <div id="loading-indicator">Cargando datos...</div>
+        <div id="error-message" style="color: red; display: none;"></div>
         <table id="data-table">
             <thead id="table-header">
             <!-- Las columnas se generarán dinámicamente -->
@@ -33,56 +33,188 @@
 <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        console.log("DOMContentLoaded en table_view.html"); //Agregar este log
-        // Configurar el botón de volver
-        document.getElementById('btn-back').addEventListener('click', function() {
-            app.goBackToMenu();
-        });
+    // Inicializar la página
+    function tryInitPage() {
+        console.log("Intentando inicializar la página...");
 
-        // Inicializar la página - esto disparará la carga de datos desde Java
-        app.initPage();
-        console.log("Después de llamar a app.initPage() en table_view.html"); //Agregar este log
-    });
+        // Esperar antes de intentar inicializar
+        setTimeout(function() {
+            if (typeof app !== 'undefined' && app !== null) {
+                try {
+                    if (typeof app.initPage === 'function') {
+                        console.log("El método app.initPage está disponible");
+                        app.initPage();
+                        console.log("app.initPage() llamado exitosamente");
+                    } else {
+                        console.error("Error: app existe pero app.initPage no es una función");
+                        document.getElementById('error-message').textContent = "Error: La función app.initPage no está disponible";
+                        document.getElementById('error-message').style.display = 'block';
+                        document.getElementById('loading-indicator').style.display = 'none';
+                    }
+                } catch (error) {
+                    console.error("Error detallado al llamar a app.initPage():", error);
+                    document.getElementById('error-message').textContent =
+                        "Error al cargar datos: " + (error.message || "undefined");
+                    document.getElementById('error-message').style.display = 'block';
+                    document.getElementById('loading-indicator').style.display = 'none';
+                }
+            } else {
+                console.log("El objeto app NO está disponible todavía (app = " + app + "), reintentando en 1000ms...");
+                document.getElementById('loading-indicator').textContent =
+                    "Inicializando la conexión...";
+                setTimeout(tryInitPage, 1000);
+            }
+        }, 500);
+    }
 
-    // Función que será llamada desde Java para mostrar los datos
+    // Intentar configurar el botón de volver
+    function trySetupBackButton() {
+        console.log("Configurando botón de volver...");
+
+        if (typeof app !== 'undefined') {
+            console.log("El objeto app está disponible, configurando botón de volver");
+            document.getElementById('btn-back').addEventListener('click', function() {
+                console.log("Botón volver clickeado");
+                try {
+                    app.goBackToMenu();
+                    console.log("app.goBackToMenu() llamado exitosamente");
+                } catch (error) {
+                    console.error("Error al llamar a app.goBackToMenu():", error);
+                    alert("Error al volver al menú: " + error.message);
+                }
+            });
+        } else {
+            console.log("El objeto app NO está disponible todavía, reintentando en 500ms...");
+            setTimeout(trySetupBackButton, 500);
+        }
+    }
+
+    // Función llamada desde Java para mostrar los datos
     function displayData(pageTitle, columns, data) {
-        console.log("displayData llamada con: ", pageTitle, columns, data);
-        // Actualizar el título de la página
-        document.getElementById('page-title').textContent = pageTitle;
+        console.log("displayData LLAMADA con título:", pageTitle);
+        console.log("displayData recibió columnas:", columns ? columns.length : "null/undefined");
+        console.log("displayData recibió datos:", data ? data.length : "null/undefined", "filas");
 
-        // Ocultar indicador de carga
-        document.getElementById('loading-indicator').style.display = 'none';
+        try {
+            // Validar datos de manera más robusta
+            if (!columns || !Array.isArray(columns)) {
+                throw new Error("Columnas inválidas o no es un array: " + typeof columns);
+            }
 
-        // Generar encabezados de tabla
-        const tableHeader = document.getElementById('table-header');
-        let headerRow = document.createElement('tr');
+            if (!data || !Array.isArray(data)) {
+                throw new Error("Datos inválidos o no es un array: " + typeof data);
+            }
 
-        columns.forEach(column => {
-            let th = document.createElement('th');
-            th.textContent = column;
-            headerRow.appendChild(th);
-        });
+            console.log("  columns:", columns.length, "columnas");
+            console.log("  data:", data.length, "filas");
 
-        tableHeader.innerHTML = '';
-        tableHeader.appendChild(headerRow);
+            // Imprimir muestra de datos para depuración
+            if (data.length > 0) {
+                console.log("Primera fila de datos:", JSON.stringify(data[0]));
+            }
 
-        // Generar filas de datos
-        const tableBody = document.getElementById('table-body');
-        tableBody.innerHTML = '';
+            // Actualizar el título de la página
+            document.getElementById('page-title').textContent = pageTitle;
 
-        data.forEach(row => {
-            let tr = document.createElement('tr');
+            // Ocultar indicador de carga y cualquier mensaje de error
+            document.getElementById('loading-indicator').style.display = 'none';
+            document.getElementById('error-message').style.display = 'none';
 
+            // Generar encabezados de tabla
+            const tableHeader = document.getElementById('table-header');
+            tableHeader.innerHTML = ''; // Limpiar contenido previo
+
+            const headerRow = document.createElement('tr');
+
+            // Agregar encabezados para cada columna
             columns.forEach(column => {
-                let td = document.createElement('td');
-                td.textContent = row[column] || '';
-                tr.appendChild(td);
+                const cell = document.createElement('th');
+                cell.textContent = column.charAt(0).toUpperCase() + column.slice(1);
+                headerRow.appendChild(cell);
             });
 
-            tableBody.appendChild(tr);
+            tableHeader.appendChild(headerRow);
+
+            // Generar filas de datos
+            const tableBody = document.getElementById('table-body');
+            tableBody.innerHTML = ''; // Limpiar contenido previo
+
+            // Verificar si hay datos
+            if (data.length === 0) {
+                document.getElementById('error-message').textContent = 'No se encontraron datos';
+                document.getElementById('error-message').style.display = 'block';
+                return;
+            }
+
+            // Crear una fila para cada elemento de datos
+            // Crear una fila para cada elemento de datos
+data.forEach((rowData, index) => {
+    try {
+        const row = document.createElement('tr');
+
+        // Agregar una celda para cada columna
+        columns.forEach(column => {
+            const cell = document.createElement('td');
+            const lowerCaseColumn = column.toLowerCase();
+
+            // Verificar si existe la propiedad (probar tanto con mayúsculas como minúsculas)
+            if (lowerCaseColumn in rowData) {
+                let cellValue = rowData[lowerCaseColumn];
+
+                // Formatear valores especiales si es necesario (por ejemplo precios)
+                if ((lowerCaseColumn.includes('precio') ||
+                     lowerCaseColumn.includes('costo')) &&
+                    cellValue && !isNaN(parseFloat(cellValue))) {
+                    try {
+                        const numValue = parseFloat(cellValue);
+                        cellValue = numValue.toLocaleString('es-MX', {
+                            style: 'currency',
+                            currency: 'MXN'
+                        });
+                    } catch (e) {
+                        console.error("Error al formatear valor monetario:", e);
+                    }
+                }
+                cell.textContent = cellValue || '';
+            } else {
+                cell.textContent = '';
+                console.warn(`Columna '${column}' (minúsculas: '${lowerCaseColumn}') no encontrada en fila ${index}`);
+            }
+            row.appendChild(cell);
         });
+        tableBody.appendChild(row);
+    } catch (rowError) {
+        console.error(`Error al procesar fila ${index}:`, rowError);
+        // Continuar con la siguiente fila
     }
+});
+
+            // Mostrar la tabla
+            document.getElementById('data-table').style.display = 'table';
+            console.log("Tabla de datos cargada correctamente");
+
+        } catch (error) {
+            console.error("Error en displayData:", error);
+            document.getElementById('error-message').textContent = "Error al mostrar datos: " + error.message;
+            document.getElementById('error-message').style.display = 'block';
+            document.getElementById('loading-indicator').style.display = 'none';
+        }
+    }
+
+    // Definir displayData en el objeto window para que Java pueda llamarlo
+    window.displayData = displayData;
+
+    console.log("displayData definido en window:", typeof window.displayData === 'function');
+
+    // Iniciar cuando el DOM esté listo
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log("DOMContentLoaded en table_view.html");
+        console.log("displayData definido en window:", typeof window.displayData === 'function');
+
+        // Verificar y configurar botón de volver
+        trySetupBackButton();
+        tryInitPage();
+    });
 </script>
 </body>
 </html>

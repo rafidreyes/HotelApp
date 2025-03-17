@@ -1,6 +1,7 @@
 package com.newhotel.hotelapp;
 
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.scene.Scene;
 import javafx.scene.web.WebEngine;
 import javafx.scene.web.WebView;
@@ -19,11 +20,13 @@ import java.util.List;
 
 public class Main extends Application {
 
+    private static JSBridge bridge;
+
     public static void main(String[] args) {
         launch(args);
     }
 
-    public class JSBridge {
+    public static class JSBridge {
         private WebEngine engine;
         private String currentPage = "menu";
 
@@ -77,7 +80,6 @@ public class Main extends Application {
             } catch (SQLException e) {
                 System.err.println("Error SQL: " + e.getMessage());
                 e.printStackTrace();
-                // Manejar el error (por ejemplo, mostrar un mensaje en la consola JavaScript)
             }
             return valid;
         }
@@ -100,51 +102,127 @@ public class Main extends Application {
                 System.out.println("JSBridge.loadPage llamado con: " + pageType);
                 this.currentPage = pageType;
                 System.out.println("currentPage establecida en: " + this.currentPage);
-                String pagePath = getClass().getResource("/table_view.html").toExternalForm();
-                engine.load(pagePath);
-                System.out.println("table_view.html cargado."); // Agregar este log
+
+                // runLater para asegurar que la carga ocurra en el hilo de la UI
+                Platform.runLater(() -> {
+                    try {
+                        String pagePath = getClass().getResource("/table_view.html").toExternalForm();
+                        System.out.println("Intentando cargar: " + pagePath);
+                        engine.load(pagePath);
+                        System.out.println("table_view.html cargado.");
+                    } catch (Exception e) {
+                        System.err.println("Error al cargar table_view.html: " + e.getMessage());
+                        e.printStackTrace();
+                    }
+                });
             } catch (Exception e) {
-                System.out.println("Error en JSBridge.loadPage: " + e.getMessage());
+                System.err.println("Error en JSBridge.loadPage: " + e.getMessage());
                 e.printStackTrace();
             }
         }
 
         // Método para regresar al menú principal
         public void goBackToMenu() {
-            loadMenuPage(engine);
+            System.out.println("JSBridge.goBackToMenu llamado");
+            Platform.runLater(() -> {
+                try {
+                    loadMenuPage(engine);
+                    System.out.println("Volviendo al menú principal");
+                } catch (Exception e) {
+                    System.err.println("Error al volver al menú: " + e.getMessage());
+                    e.printStackTrace();
+                }
+            });
         }
 
         // Método para inicializar la página actual con datos
         public void initPage() {
             System.out.println("JSBridge.initPage llamado para: " + this.currentPage);
+
+            // verificar si tenemos un tipo de página válido
+            if (this.currentPage == null || this.currentPage.isEmpty()) {
+                System.err.println("Error: currentPage es null o vacío");
+                // Notificar al usuario en la interfaz
+                Platform.runLater(() -> {
+                    try {
+                        engine.executeScript(
+                                "document.getElementById('error-message').textContent = 'Error: No se pudo determinar el tipo de página a cargar'; " +
+                                        "document.getElementById('error-message').style.display = 'block'; " +
+                                        "document.getElementById('loading-indicator').style.display = 'none';"
+                        );
+                    } catch (Exception ex) {
+                        System.err.println("Error al mostrar mensaje de error" + ex.getMessage());
+                    }
+                });
+                return;
+            }
+
             try {
-                switch (this.currentPage) {
+                System.out.println("Intentando cargar datos para: " + this.currentPage);
+
+                // Usar un switch más resistente a fallos
+                final String pageType = this.currentPage.toLowerCase().trim();
+                switch (pageType) {
                     case "habitaciones":
+                        System.out.println("Cargando datos de habitaciones...");
                         loadHabitacionesData();
                         break;
                     case "huespedes":
+                        System.out.println("Cargando datos de huéspedes...");
                         loadHuespedesData();
                         break;
                     case "pagos":
+                        System.out.println("Cargando datos de pagos...");
                         loadPagosData();
                         break;
                     case "reserva-servicios":
+                        System.out.println("Cargando datos de reserva de servicios...");
                         loadReservaServiciosData();
                         break;
                     case "reservas":
+                        System.out.println("Cargando datos de reservas...");
                         loadReservasData();
                         break;
                     case "servicios":
+                        System.out.println("Cargando datos de servicios...");
                         loadServiciosData();
                         break;
                     default:
                         System.out.println("Tipo de página no reconocido: " + this.currentPage);
+                        showErrorInUI("Tipo de página no reconocido: " + this.currentPage);
+                        return;
                 }
             } catch (Exception e) {
-                System.out.println("Error al inicializar página: " + e.getMessage());
+                System.err.println("Error al inicializar página: " + e.getMessage());
                 e.printStackTrace();
+                // Mostrar el error en la interfaz web
+                showErrorInUI("Error al cargar datos: " + e.getMessage());
             }
+
             System.out.println("JSBridge.initPage completado para: " + this.currentPage);
+        }
+
+        // Método auxiliar para mostrar errores en la interfaz de usuario
+        private void showErrorInUI(String errorMessage) {
+            if (errorMessage == null) {
+                errorMessage = "Error desconocido";
+            }
+
+            // Escapar comillas simples para evitar errores en JavaScript
+            final String safeErrorMessage = errorMessage.replace("'", "\\'");
+
+            // Ejecutar en el hilo de JavaFX
+            Platform.runLater(() -> {
+                try {
+                    engine.executeScript(
+                            "document.getElementById('error-message').textContent = '" + safeErrorMessage + "'; " +
+                                    "document.getElementById('error-message').style.display = 'block'; " +
+                                    "document.getElementById('loading-indicator').style.display = 'none';"
+                    );
+                } catch (Exception ex) {
+                    System.err.println("Error al mostrar mensaje de error en la UI: " + ex.getMessage());
+                }
+            });
         }
 
         // Métodos para cargar datos específicos
@@ -179,43 +257,156 @@ public class Main extends Application {
 
             System.out.println("Ejecutando consulta: " + query);
 
-            try (Connection conn = DatabaseConnection.getConnection(); // Obtener la conexión
-                 PreparedStatement stmt = conn.prepareStatement(query); // Preparar la consulta
-                 ResultSet rs = stmt.executeQuery()) { // Ejecutar la consulta
+            try (Connection conn = DatabaseConnection.getConnection();
+                 PreparedStatement stmt = conn.prepareStatement(query);
+                 ResultSet rs = stmt.executeQuery()) {
+
+                System.out.println("Consulta ejecutada correctamente");
 
                 final ResultSetMetaData metaData = rs.getMetaData();
                 final int columnCount = metaData.getColumnCount();
+                System.out.println("Número de columnas encontradas: " + columnCount);
 
+                // Lista para almacenar nombres de columnas
                 final List<String> columns = new ArrayList<>();
+                final List<String> originalColumns = new ArrayList<>();
                 for (int i = 1; i <= columnCount; i++) {
-                    columns.add(metaData.getColumnName(i));
+                    originalColumns.add(metaData.getColumnName(i));
+                    columns.add(metaData.getColumnName(i).toLowerCase());
+                    System.out.println("Columna " + i + ": " + metaData.getColumnName(i) +
+                            ", Tipo: " + metaData.getColumnTypeName(i) +
+                            ", Clase: " + metaData.getColumnClassName(i));
+                }
+                System.out.println("Columnas: " + columns);
+
+                // Crear JSONArray para los datos
+                final JSONArray jsonData = new JSONArray();
+                int rowCount = 0;
+
+                // Verificar si hay datos
+                if (!rs.isBeforeFirst()) {
+                    System.out.println("La consulta no devolvió ningún dato");
+                    Platform.runLater(() -> {
+                        try {
+                            engine.executeScript(
+                                    "document.getElementById('error-message').textContent = 'No se encontraron datos en la tabla'; " +
+                                            "document.getElementById('error-message').style.display = 'block'; " +
+                                            "document.getElementById('loading-indicator').style.display = 'none';"
+                            );
+                        } catch (Exception ex) {
+                            System.err.println("Error al mostrar mensaje de 'sin datos': " + ex.getMessage());
+                        }
+                    });
+                    return;
                 }
 
-                final JSONArray jsonData = new JSONArray();
+                // Procesar filas
                 while (rs.next()) {
+                    rowCount++;
                     final JSONObject row = new JSONObject();
-                    for (String column : columns) {
-                        Object value = rs.getObject(column);
-                        row.put(column, value != null ? value.toString() : "");
+                    for (int i = 0; i < columns.size(); i++) { // Iterar por índices
+                        try {
+                            Object value = rs.getObject(originalColumns.get(i)); // Usar nombre original
+                            row.put(columns.get(i), value != null ? value.toString() : ""); // Usar nombre en minúsculas
+                        } catch (Exception e) {
+                            System.err.println("Error al procesar valor para columna " + columns.get(i) + ": " + e.getMessage());
+                            row.put(columns.get(i), "");
+                        }
                     }
                     jsonData.add(row);
                 }
+                System.out.println("Filas procesadas: " + rowCount);
 
+                // Crear JSONArray para columnas
                 final JSONArray jsonColumns = new JSONArray();
                 jsonColumns.addAll(columns);
 
-                final String script = "displayData(" +
-                        "'" + pageTitle.replace("'", "\\'") + "', " +
-                        jsonColumns.toJSONString() + ", " +
-                        jsonData.toJSONString() + ")";
+                // Serialización segura para verificar
+                final String columnsJsonString = jsonColumns.toJSONString();
+                final String dataJsonString = jsonData.toJSONString();
+
+                System.out.println("Columns JSON: " + columnsJsonString);
+                System.out.println("Data JSON (primeras filas): " +
+                        (jsonData.size() > 0 ? ((JSONObject) jsonData.get(0)).toJSONString() : "Sin datos"));
+
+                // Script seguro para envío a JavaScript
+                final String safePageTitle = pageTitle.replace("'", "\\'").replace("\n", " ");
+
+                final String script =
+                        "try {\n" +
+                                "  console.log('Llamando a displayData...');\n" +
+                                "  if (typeof displayData === 'function') {\n" +
+                                "    displayData('" + safePageTitle + "', " + columnsJsonString + ", " + dataJsonString + ");\n" +
+                                "    console.log('displayData ejecutado correctamente');\n" +
+                                "  } else {\n" +
+                                "    console.error('Error: displayData no es una función');\n" +
+                                "    document.getElementById('error-message').textContent = 'Error: Función displayData no encontrada';\n" +
+                                "    document.getElementById('error-message').style.display = 'block';\n" +
+                                "    document.getElementById('loading-indicator').style.display = 'none';\n" +
+                                "  }\n" +
+                                "} catch(e) {\n" +
+                                "  console.error('Error en displayData: ' + e);\n" +
+                                "  document.getElementById('error-message').textContent = 'Error al mostrar datos: ' + e.message;\n" +
+                                "  document.getElementById('error-message').style.display = 'block';\n" +
+                                "  document.getElementById('loading-indicator').style.display = 'none';\n" +
+                                "}";
 
                 System.out.println("Enviando datos a JavaScript: " + jsonData.size() + " filas");
-                engine.executeScript(script);
+
+                // Asegurarse de ejecutar en el hilo de JavaFX
+                Platform.runLater(() -> {
+                    try {
+                        engine.executeScript(script);
+                        System.out.println("Script enviado correctamente");
+                    } catch (Exception e) {
+                        System.err.println("Error al ejecutar script JavaScript: " + e.getMessage());
+                        e.printStackTrace();
+
+                        try {
+                            engine.executeScript(
+                                    "document.getElementById('error-message').textContent = 'Error al mostrar datos: " +
+                                            e.getMessage().replace("'", "\\'") + "';\n" +
+                                            "document.getElementById('error-message').style.display = 'block';\n" +
+                                            "document.getElementById('loading-indicator').style.display = 'none';"
+                            );
+                        } catch (Exception ex) {
+                            System.err.println("Error secundario al mostrar mensaje de error: " + ex.getMessage());
+                        }
+                    }
+                });
 
             } catch (SQLException e) {
-                System.err.println("Error al ejecutar consulta: " + e.getMessage());
+                System.err.println("Error SQL al ejecutar consulta: " + e.getMessage());
                 e.printStackTrace();
-                // Manejar el error (por ejemplo, mostrar un mensaje en la consola JavaScript)
+
+                Platform.runLater(() -> {
+                    try {
+                        engine.executeScript(
+                                "document.getElementById('error-message').textContent = 'Error de base de datos: " +
+                                        e.getMessage().replace("'", "\\'") + "';\n" +
+                                        "document.getElementById('error-message').style.display = 'block';\n" +
+                                        "document.getElementById('loading-indicator').style.display = 'none';"
+                        );
+                    } catch (Exception ex) {
+                        System.err.println("Error al mostrar mensaje de error SQL: " + ex.getMessage());
+                    }
+                });
+            } catch (Exception e) {
+                System.err.println("Error inesperado en loadTableData: " + e.getMessage());
+                e.printStackTrace();
+
+                Platform.runLater(() -> {
+                    try {
+                        engine.executeScript(
+                                "document.getElementById('error-message').textContent = 'Error inesperado: " +
+                                        e.getMessage().replace("'", "\\'") + "';\n" +
+                                        "document.getElementById('error-message').style.display = 'block';\n" +
+                                        "document.getElementById('loading-indicator').style.display = 'none';"
+                        );
+                    } catch (Exception ex) {
+                        System.err.println("Error al mostrar mensaje de error inesperado: " + ex.getMessage());
+                    }
+                });
             }
         }
     }
@@ -229,44 +420,92 @@ public class Main extends Application {
             // Habilitar la consola JavaScript
             webView.getEngine().setJavaScriptEnabled(true);
 
-            // Usamos un array de un solo elemento para poder modificar la referencia dentro del lambda
-            final JSObject[] windowRef = new JSObject[1];
-            windowRef[0] = (JSObject) engine.executeScript("window");
-            windowRef[0].setMember("javaConsole", System.out);
+            // Configurar la redirección de la consola
+            JSObject window = (JSObject) engine.executeScript("window");
+            window.setMember("javaConsole", System.out);
             engine.executeScript(
-                    "console.log = function(message) { javaConsole.println(message); };" +
-                            "console.error = function(message) { javaConsole.println('ERROR: ' + message); };"
+                    "console.log = function(message) { javaConsole.println('JS LOG: ' + message); };" +
+                            "console.error = function(message) { javaConsole.println('JS ERROR: ' + message); };"
             );
 
-            System.out.println("Cargando index.html...");
-            engine.load(getClass().getResource("/index.html").toExternalForm());
+            // Crear una única instancia de JSBridge que se mantendrá durante toda la aplicación
+            bridge = new JSBridge(engine);
 
-            // Inicializar JSBridge *una sola vez* después de cargar index.html
-            engine.getLoadWorker().stateProperty().addListener((obs, old, newState) -> {
+            // Listener para el estado de carga, usando la misma instancia de JSBridge
+            engine.getLoadWorker().stateProperty().addListener((obs, oldState, newState) -> {
+                System.out.println("Estado de carga cambiado: " + oldState + " -> " + newState);
+
                 if (newState == javafx.concurrent.Worker.State.SUCCEEDED) {
-                    System.out.println("index.html cargado correctamente");
-                    try {
-                        windowRef[0] = (JSObject) engine.executeScript("window");
-                        JSBridge bridge = new JSBridge(engine); // Crear una instancia de JSBridge
-                        windowRef[0].setMember("app", bridge); // Exponer el objeto 'app' a JavaScript
-                        System.out.println("JSBridge configurado en window.app");
-                    } catch (Exception e) {
-                        System.out.println("Error al configurar JSBridge: " + e.getMessage());
-                        e.printStackTrace();
-                    }
+                    System.out.println("Página cargada exitosamente: " + engine.getLocation());
+
+                    // Usar Platform.runLater para retrasar la asignación de JSBridge
+                    Platform.runLater(() -> {
+                        try {
+                            System.out.println("Obteniendo objeto window...");
+                            JSObject win = (JSObject) engine.executeScript("window");
+
+                            System.out.println("Asignando JSBridge existente a window.app...");
+                            win.setMember("app", bridge);
+
+                            System.out.println("JSBridge asignado para: " + engine.getLocation());
+
+                            // Verificar si app está disponible desde JavaScript
+                            engine.executeScript(
+                                    "if (typeof app !== 'undefined') {" +
+                                            "  console.log('app está definido correctamente en JavaScript');" +
+                                            "} else {" +
+                                            "  console.error('app NO está definido en JavaScript');" +
+                                            "}"
+                            );
+
+                            // Habilitar los botones si estamos en la página del menú
+                            if (engine.getLocation().contains("menu.html")) {
+                                System.out.println("Habilitando botones del menú...");
+                                engine.executeScript(
+                                        "document.querySelectorAll('.menu-button').forEach(btn => { " +
+                                                "  btn.disabled = false; " +
+                                                "  console.log('Botón habilitado: ' + btn.id); " +
+                                                "});"
+                                );
+                            }
+                        } catch (Exception e) {
+                            System.err.println("Error en Platform.runLater al asignar JSBridge: " + e.getMessage());
+                            e.printStackTrace();
+                        }
+                    });
+
                 } else if (newState == javafx.concurrent.Worker.State.FAILED) {
-                    System.out.println("Error al cargar index.html: " +
-                            engine.getLoadWorker().getException());
+                    System.err.println("Error al cargar la página: " + engine.getLoadWorker().getException());
+                    if (engine.getLoadWorker().getException() != null) {
+                        engine.getLoadWorker().getException().printStackTrace();
+                    }
                 }
             });
 
+            // Configurar manejo de excepciones no capturadas
+            Thread.setDefaultUncaughtExceptionHandler((thread, throwable) -> {
+                System.err.println("Excepción no capturada en hilo " + thread.getName() + ": " + throwable.getMessage());
+                throwable.printStackTrace();
+            });
+
+            // Cargar la página inicial (index.html)
+            System.out.println("Cargando index.html...");
+            engine.load(getClass().getResource("/index.html").toExternalForm());
 
             stage.setTitle("Sistema Hotel");
             stage.setScene(new Scene(webView, 900, 600));
             stage.show();
+
         } catch (Exception e) {
-            System.out.println("Error en start: " + e.getMessage());
+            System.err.println("Error en start: " + e.getMessage());
             e.printStackTrace();
         }
+    }
+
+    @Override
+    public void stop() {
+        System.out.println("Aplicación cerrándose, cerrando conexión a la base de datos...");
+        DatabaseConnection.closeConnection();
+        System.out.println("Aplicación cerrada correctamente");
     }
 }

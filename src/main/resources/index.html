@@ -55,6 +55,7 @@
             if (typeof app !== 'undefined') {
                 console.log("Llamando a app.login()");
                 app.login(username, password); // Llama a Java
+                console.log("Después de llamar a app.login()");
             } else {
                 console.error("Error: objeto 'app' no definido");
                 document.getElementById('errorMsg').textContent = "Error de conexión con backend";

@@ -5,6 +5,7 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 
 import java.io.IOException;
+import java.sql.SQLException;
 import java.util.concurrent.TimeUnit;
 
 public class PasswordRecoveryApi {
@@ -17,10 +18,31 @@ public class PasswordRecoveryApi {
             .build();
 
     /**
+     * Inicia el proceso de recuperación de contraseña
+     * @param username Nombre de usuario
+     * @return El token generado o null si hay un error
+     * @throws Exception Si hay un error en el proceso
+     */
+    public static String iniciarRecuperacionContrasena(String username) throws Exception {
+        try {
+            // Obtener el email del usuario usando el método existente
+            String email = PasswordRecovery.getUserEmail(username);
+
+            if (email == null || email.isEmpty()) {
+                throw new Exception("No se encontró email para el usuario: " + username);
+            }
+
+            // Solicitar el token de recuperación a través de la API
+            return requestPasswordReset(email);
+        } catch (SQLException e) {
+            throw new Exception("Error al acceder a la base de datos: " + e.getMessage());
+        }
+    }
+
+    /**
      * Solicita un token de recuperación de contraseña
      * @param email El correo electrónico del usuario
      * @return El token generado o null si hay un error
-     * @throws IOException Si hay un error de comunicación
      * @throws Exception Si hay un error en la respuesta
      */
     public static String requestPasswordReset(String email) throws Exception {
@@ -58,8 +80,12 @@ public class PasswordRecoveryApi {
 
                 if (jsonResponse.containsKey("token")) {
                     return (String) jsonResponse.get("token");
+                } else if (jsonResponse.containsKey("message")) {
+                    // Si no hay token pero hay un mensaje de éxito, mostramos el mensaje
+                    System.out.println("Mensaje del servidor: " + jsonResponse.get("message"));
+                    return (String) jsonResponse.get("token"); // Puede ser null
                 } else {
-                    return null; // No hay token en la respuesta
+                    throw new Exception("Respuesta del servidor no contiene token");
                 }
             } else {
                 throw new Exception("Respuesta vacía del servidor");
@@ -71,7 +97,6 @@ public class PasswordRecoveryApi {
      * Valida si un token de recuperación es válido
      * @param token El token a validar
      * @return true si el token es válido, false en caso contrario
-     * @throws IOException Si hay un error de comunicación
      * @throws Exception Si hay un error en la respuesta
      */
     public static boolean validateToken(String token) throws Exception {
@@ -102,11 +127,10 @@ public class PasswordRecoveryApi {
     }
 
     /**
-     * Restablece la contraseña del usuario
+     * Restablece la contraseña del usuario usando el token
      * @param token El token de recuperación
      * @param newPassword La nueva contraseña
      * @return true si se restableció correctamente, false en caso contrario
-     * @throws IOException Si hay un error de comunicación
      * @throws Exception Si hay un error en la respuesta
      */
     public static boolean resetPassword(String token, String newPassword) throws Exception {

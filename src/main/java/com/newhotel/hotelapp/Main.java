@@ -288,7 +288,7 @@ public class Main extends Application {
                             }
                         });
 
-                        // También podríamos integrar el envío del correo aquí usando la API Flask
+                        // Enviar un token de recuperación
                         try {
                             String token = PasswordRecoveryApi.requestPasswordReset(email);
                             if (token != null) {
@@ -328,6 +328,7 @@ public class Main extends Application {
                 }
             }).start();
         }
+
 
         // Finalización métodos de recuperación
 

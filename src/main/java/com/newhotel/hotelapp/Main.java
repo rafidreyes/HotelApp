@@ -129,36 +129,7 @@ public class Main extends Application {
             }
         }
 
-        public void verifySecurityAnswer(String username, String securityAnswer) {
-            System.out.println("JSBridege.verifySecurityAnswer llamado");
 
-            try {
-                boolean isValid = PasswordRecovery.verifySecurityQuestion(username, securityAnswer);
-                if (isValid) {
-                    String tempPassword = PasswordRecovery.resetPassword(username);
-                    System.out.println("Respuesta correcta, contraseña reseteada");
-
-                    engine.executeScript(
-                            "document.getElementById('newPasswordMessage').textContent = 'Su nueva contraseña temporal es: " + tempPassword + "'; " +
-                               "document.getElementById('newPasswordMessage').style.display = 'block'; " +
-                               "document.getElementById('securityQuestion').style.display = 'none'; " +
-                               "document.getElementById('resetComplete').style.display = 'block';"
-                    );
-                } else {
-                    System.out.println("Respuesta de seguridad incorrecta");
-                    engine.executeScript(
-                            "document.getElementById('errorMsg').textContent = 'Respuesta de seguridad incorrecta'; " +
-                               "document.getElementById('errorMsg').style.display = 'block';"
-                    );
-                }
-            } catch (SQLException e) {
-                System.err.println("Error al verificar respuesta: " + e.getMessage());
-                engine.executeScript(
-                        "document.getElementById('errorMsg').textContent = 'Error: " + e.getMessage().replace("'", "\\'") + "'; " +
-                           "document.getElementById('errorMsg').style.display = 'block';"
-                );
-            }
-        }
 
         private String maskEmail(String email) {
             if (email == null || email.isEmpty() || !email.contains("@")) {
@@ -253,82 +224,6 @@ public class Main extends Application {
 
             return username;
         }
-
-        public void verifyAndResetPassword(String email, String securityAnswer) {
-            System.out.println("JSBridge.verifyAndResetPassword llamado con email: " + email);
-
-            // Ejecutar en un hilo separado para no bloquear la UI
-            new Thread(() -> {
-                try {
-                    // Obtener el username asociado al email
-                    String username = getUsernameByEmail(email);
-                    if (username == null) {
-                        throw new Exception("Usuario no encontrado");
-                    }
-
-                    // Verificar la respuesta de seguridad
-                    boolean isValid = PasswordRecovery.verifySecurityQuestion(username, securityAnswer);
-
-                    if (isValid) {
-                        // Si la respuesta es correcta, generamos una nueva contraseña
-                        String tempPassword = PasswordRecovery.resetPassword(username);
-
-                        // Mostrar la nueva contraseña al usuario
-                        Platform.runLater(() -> {
-                            try {
-                                engine.executeScript(
-                                        "document.getElementById('securityQuestion').style.display = 'none'; " +
-                                                "document.getElementById('newPasswordMessage').textContent = 'Su nueva contraseña temporal es: " +
-                                                tempPassword + "'; " +
-                                                "document.getElementById('newPasswordMessage').style.display = 'block'; " +
-                                                "document.getElementById('resetComplete').style.display = 'block';"
-                                );
-                            } catch (Exception ex) {
-                                System.err.println("Error al mostrar mensaje: " + ex.getMessage());
-                            }
-                        });
-
-                        // Enviar un token de recuperación
-                        try {
-                            String token = PasswordRecoveryApi.requestPasswordReset(email);
-                            if (token != null) {
-                                System.out.println("Token de recuperación generado y correo enviado");
-                            }
-                        } catch (Exception e) {
-                            System.err.println("Error al solicitar token de recuperación: " + e.getMessage());
-                            // No mostramos este error al usuario ya que ya generamos la contraseña
-                        }
-
-                    } else {
-                        Platform.runLater(() -> {
-                            try {
-                                engine.executeScript(
-                                        "document.getElementById('errorMsg').textContent = 'Respuesta de seguridad incorrecta'; " +
-                                                "document.getElementById('errorMsg').style.display = 'block';"
-                                );
-                            } catch (Exception ex) {
-                                System.err.println("Error al mostrar mensaje: " + ex.getMessage());
-                            }
-                        });
-                    }
-
-                } catch (Exception e) {
-                    System.err.println("Error en verifyAndResetPassword: " + e.getMessage());
-                    Platform.runLater(() -> {
-                        try {
-                            engine.executeScript(
-                                    "document.getElementById('errorMsg').textContent = 'Error: " +
-                                            e.getMessage().replace("'", "\\'") + "'; " +
-                                            "document.getElementById('errorMsg').style.display = 'block';"
-                            );
-                        } catch (Exception ex) {
-                            System.err.println("Error al mostrar mensaje: " + ex.getMessage());
-                        }
-                    });
-                }
-            }).start();
-        }
-
 
         // Finalización métodos de recuperación
 

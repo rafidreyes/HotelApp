@@ -4,12 +4,11 @@ import okhttp3.*;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 
-import java.io.IOException;
 import java.sql.SQLException;
 import java.util.concurrent.TimeUnit;
 
 public class PasswordRecoveryApi {
-    private static final String API_URL = "http://localhost:5000/api";
+    private static final String API_URL = "http://127.0.0.1:5000/api";
     private static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
     private static final OkHttpClient client = new OkHttpClient.Builder()
             .connectTimeout(10, TimeUnit.SECONDS)
@@ -83,7 +82,7 @@ public class PasswordRecoveryApi {
                 } else if (jsonResponse.containsKey("message")) {
                     // Si no hay token pero hay un mensaje de éxito, mostramos el mensaje
                     System.out.println("Mensaje del servidor: " + jsonResponse.get("message"));
-                    return (String) jsonResponse.get("token"); // Puede ser null
+                    return null;
                 } else {
                     throw new Exception("Respuesta del servidor no contiene token");
                 }

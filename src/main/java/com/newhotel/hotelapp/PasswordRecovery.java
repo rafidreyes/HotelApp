@@ -6,14 +6,13 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Random;
 
-
 public class PasswordRecovery {
     public static String getUserEmail(String username) throws SQLException {
         String email = null;
         String query = "SELECT T_RH_Email FROM T_RH_InicioS WHERE T_RH_Usuario = ?";
 
         try (Connection conn = DatabaseConnection.getConnection();
-            PreparedStatement stmt = conn.prepareStatement(query)) {
+             PreparedStatement stmt = conn.prepareStatement(query)) {
 
             stmt.setString(1, username);
 
@@ -26,30 +25,13 @@ public class PasswordRecovery {
         return email;
     }
 
-    public static boolean verifySecurityQuestion(String username, String securityAnswer) throws SQLException {
-        boolean isValid = false;
-        String query = "SELECT T_RH_RespuestaSeguridad FROM T_RH_InicioS WHERE T_RH_Usuario = ?";
-
-        try (Connection conn = DatabaseConnection.getConnection();
-            PreparedStatement stmt = conn.prepareStatement(query)) {
-
-            stmt.setString(1, username);
-
-            try (ResultSet rs = stmt.executeQuery()) {
-                if (rs.next()) {
-                    String storedAnswer = rs.getString("T_RH_RespuestaSeguridad");
-                    isValid = storedAnswer != null && storedAnswer.equals(securityAnswer);
-                }
-            }
-        }
-        return isValid;
-    }
+    // Método eliminado: verifySecurityQuestion
 
     public static String generateTemporaryPassword() {
-        String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+        String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()";
         StringBuilder sb = new StringBuilder();
         Random random = new Random();
-        int length = 8;
+        int length = 12; // Aumentar longitud para mayor seguridad
 
         for (int i = 0; i < length; i++) {
             int index = random.nextInt(chars.length());
@@ -63,7 +45,7 @@ public class PasswordRecovery {
         String query = "UPDATE T_RH_InicioS SET T_RH_Contrasenia = ? WHERE T_RH_Usuario = ?";
 
         try (Connection conn = DatabaseConnection.getConnection();
-            PreparedStatement stmt = conn.prepareStatement(query)) {
+             PreparedStatement stmt = conn.prepareStatement(query)) {
 
             stmt.setString(1, newPassword);
             stmt.setString(2, username);

@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <link rel="stylesheet" href="password_style.css">
+    <title>Verificación de Token</title>
+</head>
+<body>
+<section>
+    <form id="verificationForm">
+        <h1>Verificar Token</h1>
+        <div id="emailMessage"></div>
+
+        <div class="inputbox">
+            <ion-icon name="key-outline"></ion-icon>
+            <input type="text" id="token" required>
+            <label for="token">Token</label>
+        </div>
+
+        <div class="inputbox">
+            <ion-icon name="lock-closed-outline"></ion-icon>
+            <input type="password" id="newPassword" required>
+            <label for="newPassword">Nueva Contraseña</label>
+        </div>
+
+        <div id="errorMsg"></div>
+        <button type="button" id="verifyTokenBtn">Restablecer Contraseña</button>
+    </form>
+    
+    <div class="forget">
+        <a href="index.html" id="backToLoginLink">Volver al Login</a>
+    </div>
+</section>
+
+<script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+<script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+
+<script>
+    // Obtener el correo de la URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const email = urlParams.get('email');
+    
+    // Mostrar el correo en la página
+    document.getElementById('emailMessage').innerText = `Se ha enviado un token a ${email}. Por favor, ingresa el token y tu nueva contraseña.`;
+
+    document.getElementById('verifyTokenBtn').addEventListener('click', function() {
+        const token = document.getElementById('token').value;
+        const newPassword = document.getElementById('newPassword').value;
+        const errorMsg = document.getElementById('errorMsg');
+        errorMsg.textContent = ''; // Limpiar mensajes de error previos
+
+        // Validaciones básicas
+        if (token.length === 0) {
+            errorMsg.textContent = 'Por favor, ingrese el token recibido';
+            return;
+        }
+
+        if (newPassword.length < 8) {
+            errorMsg.textContent = 'La contraseña debe tener al menos 8 caracteres';
+            return;
+        }
+
+        // Verificar token y restablecer contraseña
+        fetch('/api/reset-password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                token: token, 
+                new_password: newPassword,
+                email: email 
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.message) {
+                alert(data.message);
+                window.location.href = 'index.html'; // Redirigir al login
+            } else {
+                errorMsg.textContent = data.error || 'Error al restablecer la contraseña';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            errorMsg.textContent = 'Ocurrió un error al procesar la solicitud';
+        });
+    });
+</script>
+
+</body>
+</html>

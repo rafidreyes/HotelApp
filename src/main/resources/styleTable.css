@@ -146,4 +146,31 @@ tr:hover {
     .table-container {
         padding: 1.5rem;
     }
+
+    .search-container {
+                margin: 15px 0;
+                display: flex;
+                align-items: center;
+            }
+            .search-container label {
+                margin-right: 10px;
+                font-weight: bold;
+            }
+            .search-container input {
+                padding: 8px 12px;
+                border: 1px solid #ccc;
+                border-radius: 4px;
+                width: 300px;
+                font-size: 14px;
+            }
+            .search-container input:focus {
+                outline: none;
+                border-color: #4a90e2;
+                box-shadow: 0 0 5px rgba(74, 144, 226, 0.5);
+            }
+            .search-info {
+                margin-left: 10px;
+                font-size: 14px;
+                color: #666;
+            }
 }

@@ -7,6 +7,7 @@ module com.newhotel.hotelapp {
     requires jdk.jsobject;
     requires java.sql;
     requires json.simple;
+    requires okhttp3;
 
 
     opens com.newhotel.hotelapp to javafx.fxml;

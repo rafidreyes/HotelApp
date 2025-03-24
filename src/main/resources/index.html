@@ -23,13 +23,10 @@
         </div>
         <div class="forget">
             <label for="remember"><input type="checkbox" id="remember">Remember Me</label>
-            <a href="#">Forget Password</a>
+            <a href="#" id="forgotPasswordLink">Forget Password</a>
         </div>
         <div id="errorMsg" style="color: red; margin-bottom: 10px;"></div>
         <button type="button" id="loginBtn">Log in</button>
-        <!--<div class="register">
-            <p>Don't have a account <a href="#">Register</a></p>
-        </div>-->
     </form>
 </section>
 
@@ -65,6 +62,14 @@
             document.getElementById('errorMsg').textContent = "Error: " + e.message;
         }
     }
+</script>
+<script>
+    // Agregar manejador para el enlace de recuperación de contraseña
+    document.getElementById('forgotPasswordLink').addEventListener('click', function(e) {
+        e.preventDefault();
+        // Cargar la página de recuperación de contraseña
+        window.location.href = 'password_recovery.html';
+    });
 </script>
 </body>
 </html>
